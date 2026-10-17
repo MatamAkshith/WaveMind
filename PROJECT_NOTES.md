@@ -483,13 +483,20 @@ The context builder (`backend/app/ai/rag/context_builder.py`) constructs a struc
 
 ## 18. API Design Plan
 
-### 18.1 Route Groupings `[PROPOSED]`
+### 18.1 Route Groupings
 All endpoints are versioned under `/api/v1`:
 - `/api/v1/auth`:
   - `POST /register`: Create account.
   - `POST /login`: Authenticate and issue JWT.
   - `GET /me`: Fetch authenticated user profile.
-- `/api/v1/users`: User profile updates, preferences, and account deletion.
+  - `PATCH /me`: Update the authenticated user's name or email. Email changes require the current password.
+  - `PATCH /me/password`: Change the authenticated user's password with current-password verification.
+- `/api/v1/chat`:
+  - `GET /conversations`: List the authenticated user's conversations.
+  - `POST /conversations`: Start a new conversation.
+  - `GET /conversations/{id}/messages`: Restore a user-owned conversation in timestamp order.
+- `/api/v1/companion/chat`:
+  - `POST /chat`: Persist a user message and generated companion response with idempotent retry support.
 - `/api/v1/moods`:
   - `GET /`: List historical mood logs (paginated, date filters).
   - `POST /`: Record a new mood entry.
@@ -748,3 +755,31 @@ Any AI coding assistant operating on this repository in future sessions MUST adh
    - In all backend query implementations, ensure `user_id = current_user.id` is explicitly enforced.
 6. **Update Documentation Continuously**:
    - When an approved architectural decision changes or an implementation phase is completed, update `PROJECT_NOTES.md` to keep documentation synchronized with the codebase.
+
+---
+
+## 31. Implemented Application Features
+
+- **Authentication** `[IMPLEMENTED]`: React login and registration use
+  `/api/v1/auth/login` and `/api/v1/auth/register`; authenticated sessions use
+  the `wavemind_access_token` local-storage key.
+- **Mood Tracking** `[IMPLEMENTED]`: Authenticated mood creation, listing, and
+  deletion use `/api/v1/moods` with user-isolated database queries.
+- **AI Companion** `[IMPLEMENTED]`: Authenticated chat uses
+  `/api/v1/companion/chat`, with explicit provider and safety error handling.
+- **Journal** `[IMPLEMENTED]`: Authenticated journal creation, listing, and
+  deletion use `/api/v1/journals`. The `journal_entries` table is created by
+  Alembic revision `5b1e2c7d8f90`.
+- **Habits** `[IMPLEMENTED]`: Authenticated habit creation, listing, completion
+  toggling, and deletion use `/api/v1/habits`. The `habits` table is created by
+  Alembic revision `6c2d3e8f901a`.
+- **Goals** `[IMPLEMENTED]`: Authenticated goal creation, listing, progress
+  updates, and deletion use `/api/v1/goals`. The `goals` table is created by
+  Alembic revision `7d3e4f901a2b`.
+- **Insights** `[IMPLEMENTED]`: Authenticated read-only summaries use
+  `/api/v1/insights/summary` and aggregate only the current user's mood and
+  habit records; no separate insights table is used.
+- **Validation** `[CONFIRMED]`: Frontend production build, backend compilation,
+  Alembic head verification, and the available backend test suite have been
+  run. Live PostgreSQL migration and end-to-end journal API tests remain
+  environment-dependent.
